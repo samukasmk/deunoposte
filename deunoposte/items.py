@@ -8,14 +8,10 @@
 import scrapy
 
 class GameResultItem(scrapy.Item):
-    date = scrapy.Field()
-    datetime = scrapy.Field()
     game = scrapy.Field()
     state = scrapy.Field()
+    date = scrapy.Field()
     position = scrapy.Field()
     result = scrapy.Field()
     ten = scrapy.Field()
     animal = scrapy.Field()
-
-
-

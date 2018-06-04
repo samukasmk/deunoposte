@@ -2,6 +2,7 @@
 
 import scrapy
 from dateparser import parse
+from deunoposte.items import GameResultItem
 
 
 class DeunoposteSpider(scrapy.Spider):
@@ -15,7 +16,7 @@ class DeunoposteSpider(scrapy.Spider):
     ]
 
     def parse(self, response):
-        self.log(f'--------- Parsing page: {response.url}')
+        self.log(f'Start parsing page: {response.url}')
         posts = response.css('div.post')
         for item in self.parse_posts_items(posts):
             yield item
@@ -27,23 +28,26 @@ class DeunoposteSpider(scrapy.Spider):
 
     def parse_posts_items(self, posts):
         for post in posts:
-            item = {}
-
             post_title = post.css('a[rel=bookmark]::text')
-            item['game'] = post_title.re_first('\[(.*)\-.*\]')
-            item['state'] = post_title.re_first('\[.*\-(.*)\]')
-            item['date'] = post_title.re_first('([0-9]{2,}\/[0-9]{2,}\/[0-9]{4})')
+            game = post_title.re_first('\[(.*)\-.*\]')
+            state = post_title.re_first('\[.*\-(.*)\]')
+            date = post_title.re_first('([0-9]{2,}\/[0-9]{2,}\/[0-9]{4})')
 
-            if item['date']:
-                item['date'] = parse(item['date']).date()
+            if date:
+                date = parse(date).date()
 
             post_results = post.css('div.resultado ::text')
             for line in post_results:
-                results = line.re('^[\s]*([1-9][0-9]*).*([0-9]{4}).*([0-9]{2,})[\s]*')
-                if results:
-                    item['position'], item['result'], *extra_info = results
+                position = line.re_first('^[\s]*([1-9][0-9]*)')
+                result = line.re_first('\s([0-9]{4})\s')
+                ten = line.re_first('([0-9]{2})\s*[a-zA-Z\u00C0-\u00FF]')
+                animal = line.re_first('\s([a-zA-Z\u00C0-\u00FF]{3,})[\s]*')
 
-                    if len(extra_info) > 1:
-                        item['ten'], item['animal'] = extra_info
-
-                    yield item
+                if result:
+                    yield GameResultItem(game=game,
+                                         state=state,
+                                         date=date,
+                                         position=position,
+                                         result=result,
+                                         ten=ten,
+                                         animal=animal)
